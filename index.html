@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Monitoreo Wellkind</title>
+<meta name="theme-color" content="#202124">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Monitoreo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin>
+<style>
+  :root {
+    --fondo: #1B1C1E;
+    --panel: rgba(32, 33, 36, .95);
+    --campo: #26272A;
+    --verde: #3DB83A;
+    --verde-texto: #0E1A0E;
+    --gris: #B0B0B0;
+    --linea: #3A3A3A;
+    --rojo: #E5534B;
+    --nav: 64px;
+    --sup: env(safe-area-inset-top, 0px);
+    --inf: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fondo); color: #fff;
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; font-size: 16px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+
+  /* ===== Mapa ===== */
+  #mapa { position: fixed; top: 0; left: 0; right: 0; bottom: calc(var(--nav) + var(--inf)); background: #111; }
+  .leaflet-container { font-family: inherit; }
+  .leaflet-top.leaflet-left { top: calc(96px + var(--sup)); }
+  .leaflet-control-scale-line { background: transparent; color: #fff; border-color: #fff;
+    text-shadow: 0 1px 2px #000; font-weight: 600; }
+  .leaflet-control-attribution { background: rgba(0,0,0,.45) !important; color: #ddd !important; font-size: 10px; }
+  .leaflet-control-attribution a { color: #ddd !important; }
+  .pin { background: none; border: none; }
+
+  #panel { position: fixed; z-index: 500; top: calc(10px + var(--sup)); left: 12px; right: 12px;
+    display: flex; background: var(--panel); border-radius: 28px; padding: 8px 0; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+  #panel > div { flex: 1; text-align: center; border-left: 1px solid #444; }
+  #panel > div:first-child { border-left: none; }
+  #panel small { display: block; color: #D0D0D0; font-size: 12px; }
+  #panel b { font-size: 24px; letter-spacing: -.3px; }
+
+  .redondo { width: 56px; height: 56px; border-radius: 50%; border: none; background: var(--panel);
+    display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0,0,0,.45); }
+  .redondo svg { width: 26px; height: 26px; fill: #fff; }
+  #colIzq { position: fixed; z-index: 500; left: 14px; bottom: calc(var(--nav) + var(--inf) + 20px);
+    display: flex; flex-direction: column; gap: 14px; }
+  #colDer { position: fixed; z-index: 500; right: 14px; bottom: calc(var(--nav) + var(--inf) + 20px);
+    display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+  #btnFab { width: 66px; height: 66px; background: var(--verde); }
+  #btnFab svg { width: 32px; height: 32px; }
+  #menuFab { background: var(--panel); border-radius: 20px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.45); max-width: 290px; }
+  #menuFab button { display: flex; align-items: center; justify-content: flex-end; gap: 14px; width: 100%;
+    background: none; border: none; border-bottom: 1px solid var(--linea); padding: 16px 18px; text-align: right; }
+  #menuFab button svg { width: 28px; height: 28px; fill: var(--verde); flex: none; }
+  #menuFab p { margin: 0; padding: 12px 18px 14px; color: var(--gris); font-size: 13px; line-height: 1.4; }
+
+  /* Hoja "Ubicación marcada" */
+  #hoja { position: fixed; z-index: 600; left: 0; right: 0; bottom: calc(var(--nav) + var(--inf));
+    background: rgba(32,33,36,.97); border-radius: 20px 20px 0 0; padding: 10px 18px 16px; box-shadow: 0 -4px 16px rgba(0,0,0,.4); }
+  .agarradera { width: 44px; height: 4px; border-radius: 2px; background: #777; margin: 0 auto 12px; }
+  #hoja h2 { margin: 0; font-size: 22px; }
+  #hoja p { margin: 4px 0 0; color: var(--gris); font-size: 16px; }
+  #hoja .acciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px;
+    border-top: 1px solid #444; padding-top: 14px; }
+  #hoja .acciones button { background: #33363B; border: none; border-radius: 8px; padding: 14px 4px;
+    color: var(--verde); font-weight: 700; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  #hoja .acciones svg { width: 30px; height: 30px; fill: var(--verde); }
+
+  /* Barra inferior */
+  #nav { position: fixed; z-index: 700; left: 0; right: 0; bottom: 0; height: calc(var(--nav) + var(--inf));
+    padding-bottom: var(--inf); background: #262626; display: grid; grid-template-columns: repeat(4, 1fr); }
+  #nav button { background: none; border: none; color: #C8C8C8; font-size: 13px; display: flex;
+    flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  #nav svg { width: 26px; height: 26px; fill: currentColor; }
+  #nav button.activo { color: var(--verde); }
+
+  /* ===== Vistas a pantalla completa ===== */
+  .vista { position: fixed; inset: 0; z-index: 650; background: var(--fondo); overflow-y: auto;
+    -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--nav) + var(--inf) + 24px); }
+  .barra { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px;
+    background: #202124; padding: calc(10px + var(--sup)) 12px 10px; border-bottom: 1px solid var(--linea); }
+  .barra h1 { margin: 0; font-size: 19px; }
+  .volver { background: none; border: none; color: var(--verde); font-size: 17px; padding: 8px 6px; font-weight: 600; }
+  .cuerpo { max-width: 640px; margin: 0 auto; padding: 14px 18px; }
+  .cuerpo h2 { font-size: 17px; margin: 26px 0 6px; }
+  .estado { font-weight: 700; margin: 4px 0 0; }
+  .ayuda { color: var(--gris); font-size: 14px; margin: 4px 0 8px; line-height: 1.45; }
+  label { display: block; color: var(--gris); font-size: 14px; margin-top: 16px; }
+  input, textarea, select { display: block; width: 100%; margin-top: 4px; background: transparent; color: #fff;
+    border: none; border-bottom: 2px solid var(--verde); padding: 8px 2px; font-size: 18px; font-family: inherit; border-radius: 0; }
+  textarea { resize: vertical; }
+  input:disabled, textarea:disabled { color: #9a9a9a; border-bottom-color: #555; }
+  select { background: var(--campo); border-radius: 8px; border: 1px solid #444; padding: 10px; font-size: 16px; }
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .coord { display: grid; grid-template-columns: 96px 1fr; align-items: center; margin-top: 8px; }
+  .coord span { font-weight: 700; }
+  .coord input { font-size: 20px; margin-top: 0; }
+  .campo-error { color: var(--rojo); font-size: 13px; margin-top: 4px; }
+
+  .btn { display: block; width: 100%; border-radius: 8px; padding: 14px 12px; font-weight: 700; font-size: 16px; margin-top: 12px; border: none; }
+  .btn.primario { background: var(--verde); color: var(--verde-texto); margin-top: 28px; }
+  .btn.secundario { background: #33363B; color: #fff; }
+  .btn.contorno { background: none; border: 1.5px solid var(--verde); color: var(--verde); }
+  .btn.peligro { background: none; color: var(--rojo); }
+  .btn.texto { background: none; color: var(--gris); }
+
+  .fotos { display: flex; gap: 10px; overflow-x: auto; padding: 4px 0; }
+  .foto { position: relative; flex: none; width: 96px; height: 96px; border-radius: 8px; overflow: hidden; background: #333; }
+  .foto img { width: 100%; height: 100%; object-fit: cover; }
+  .foto button { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 50%;
+    border: none; background: rgba(0,0,0,.7); color: #fff; font-size: 16px; line-height: 28px; padding: 0; }
+
+  .lista-reg { list-style: none; margin: 16px 0 0; padding: 0; }
+  .lista-reg li { padding: 14px 4px; border-bottom: 1px solid var(--linea); cursor: pointer; }
+  .lista-reg b { display: block; font-size: 16px; }
+  .lista-reg span { display: block; color: var(--gris); font-size: 13px; margin-top: 2px; }
+  .lista-reg em { font-style: normal; font-weight: 700; font-size: 13px; }
+  .vacio { color: var(--gris); text-align: center; margin-top: 40px; line-height: 1.5; }
+
+  /* ===== Ventanas emergentes ===== */
+  .modal { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; }
+  .modal-caja { width: 100%; max-width: 640px; max-height: 88vh; display: flex; flex-direction: column; background: #26272A;
+    border-radius: 18px 18px 0 0; padding: 12px 18px calc(16px + var(--inf)); }
+  .modal-caja h3 { margin: 4px 0 12px; font-size: 19px; }
+  .lista-sel { list-style: none; margin: 10px 0 0; padding: 0; overflow-y: auto; flex: 1; min-height: 120px; }
+  .lista-sel li { padding: 12px 4px; border-bottom: 1px solid var(--linea); cursor: pointer; }
+  .lista-sel small { display: block; color: var(--gris); }
+  .opcion { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: none;
+    border-bottom: 1px solid var(--linea); padding: 15px 4px; text-align: left; font-size: 16px; }
+  .opcion .marca { width: 20px; color: var(--verde); font-weight: 700; }
+
+  #toast { position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%);
+    bottom: calc(var(--nav) + var(--inf) + 18px); max-width: 90vw; background: #3A3B3F; color: #fff;
+    padding: 12px 18px; border-radius: 22px; font-size: 15px; box-shadow: 0 4px 14px rgba(0,0,0,.5); text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- ===================== MAPA ===================== -->
+<div id="mapa"></div>
+
+<div id="panel">
+  <div><small>Precisión GPS</small><b id="tvPrecision">—</b></div>
+  <div><small>Elevación</small><b id="tvElevacion">—</b></div>
+  <div><small>Por enviar</small><b id="tvPendientes">0</b></div>
+</div>
+
+<div id="colIzq">
+  <button class="redondo" id="btnCapas" aria-label="Capas del mapa">
+    <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
+  </button>
+  <button class="redondo" id="btnCentrar" aria-label="Ir a mi ubicación">
+    <svg viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+  </button>
+</div>
+
+<div id="colDer">
+  <div id="menuFab" hidden>
+    <button id="opMiUbicacion">Registrar en mi ubicación
+      <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A8.99 8.99 0 0 0 13 3.06V1h-2v2.06A8.99 8.99 0 0 0 3.06 11H1v2h2.06A8.99 8.99 0 0 0 11 20.94V23h2v-2.06A8.99 8.99 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>
+    </button>
+    <button id="opCentro">Marcar el centro del mapa
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+    </button>
+    <p>Toca tu ubicación o cualquier lugar del mapa para marcar un punto.</p>
+  </div>
+  <button class="redondo" id="btnFab" aria-label="Nuevo registro">
+    <svg viewBox="0 0 24 24" id="icoFab"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>
+</div>
+
+<div id="hoja" hidden>
+  <div class="agarradera"></div>
+  <h2>Ubicación marcada</h2>
+  <p id="puntoInfo"></p>
+  <p id="puntoCoords"></p>
+  <div class="acciones">
+    <button id="btnGuardarPunto">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>Guardar</button>
+    <button id="btnCompartir">
+      <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11A2.99 2.99 0 0 0 21 5a3 3 0 1 0-5.91.7L8.04 9.81A2.99 2.99 0 0 0 3 12a2.99 2.99 0 0 0 5.04 2.19l7.12 4.16c-.05.21-.08.43-.08.65A2.92 2.92 0 1 0 18 16.08z"/></svg>Compartir</button>
+    <button id="btnCerrarPunto">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>Cerrar</button>
+  </div>
+</div>
+
+<!-- ===================== FORMULARIO ===================== -->
+<section id="vistaForm" class="vista" hidden>
+  <header class="barra">
+    <button class="volver" id="formVolver">‹ Mapa</button>
+    <h1 id="formTitulo">Nuevo registro</h1>
+  </header>
+  <div class="cuerpo">
+    <p id="fEstado" class="estado"></p>
+
+    <h2>Beneficiario</h2>
+    <p id="fBenefInfo" class="ayuda"></p>
+    <button id="fElegir" class="btn secundario">Elegir de la lista</button>
+
+    <label>Nombre del beneficiario *<input id="fNombre" autocomplete="off" autocapitalize="words"></label>
+    <div id="errNombre" class="campo-error" hidden>Escribe el nombre del beneficiario</div>
+    <label>Comunidad<input id="fComunidad" list="listaComunidades" autocomplete="off" autocapitalize="words"
+      placeholder="Elige una o escribe una nueva"></label>
+    <datalist id="listaComunidades"></datalist>
+    <div id="errComunidad" class="campo-error" hidden>Indica la comunidad: define en qué hoja se guarda</div>
+    <div class="dos">
+      <label>DPI<input id="fDpi" inputmode="numeric" maxlength="13" autocomplete="off"></label>
+      <label>Cuerdas<input id="fCuerdas" inputmode="decimal" autocomplete="off"></label>
+    </div>
+    <div id="errDpi" class="campo-error" hidden>El DPI debe tener 13 dígitos</div>
+    <label>Técnico que registra<input id="fTecnico" autocapitalize="words"></label>
+    <label>Observaciones<textarea id="fObs" rows="3" autocapitalize="sentences"></textarea></label>
+
+    <h2>Ubicación</h2>
+    <div class="coord"><span>Latitud</span><input id="fLat" inputmode="decimal" placeholder="14.731716" autocomplete="off"></div>
+    <div class="coord"><span>Longitud</span><input id="fLon" inputmode="text" placeholder="-91.243944" autocomplete="off"></div>
+    <p id="fGpsInfo" class="ayuda"></p>
+    <button id="fGps" class="btn secundario">Tomar punto con GPS</button>
+
+    <h2 id="fFotosTitulo">Fotos</h2>
+    <div id="fFotos" class="fotos"></div>
+    <p id="fFotosEnviadas" class="ayuda" hidden></p>
+    <div class="dos" id="fBotonesFoto">
+      <button id="fCamara" class="btn secundario">Cámara</button>
+      <button id="fGaleria" class="btn secundario">Galería</button>
+    </div>
+    <input id="inCamara" type="file" accept="image/*" capture="environment" hidden>
+    <input id="inGaleria" type="file" accept="image/*" multiple hidden>
+
+    <button id="fListo" class="btn primario">Listo – enviar cuando haya señal</button>
+    <button id="fBorrador" class="btn contorno">Guardar como borrador</button>
+    <button id="fEliminar" class="btn peligro">Eliminar registro</button>
+  </div>
+</section>
+
+<!-- ===================== LISTA ===================== -->
+<section id="vistaLista" class="vista" hidden>
+  <header class="barra">
+    <button class="volver" id="listaVolver">‹ Mapa</button>
+    <h1>Registros</h1>
+  </header>
+  <div class="cuerpo">
+    <p id="listaResumen" class="estado"></p>
+    <button id="listaEnviar" class="btn primario" style="margin-top:12px">Enviar pendientes ahora</button>
+    <ul id="listaReg" class="lista-reg"></ul>
+  </div>
+</section>
+
+<!-- ===================== VENTANAS ===================== -->
+<div id="modalSelector" class="modal" hidden>
+  <div class="modal-caja">
+    <h3 id="selTitulo">Elegir beneficiario</h3>
+    <select id="selComunidad" aria-label="Comunidad"></select>
+    <input id="selBuscar" placeholder="Buscar por nombre, comunidad o DPI" autocomplete="off">
+    <ul id="selLista" class="lista-sel"></ul>
+    <button id="selNuevo" class="btn contorno">Nuevo (no está en la lista)</button>
+    <button id="selCancelar" class="btn texto">Cancelar</button>
+  </div>
+</div>
+
+<div id="modalCapas" class="modal" hidden>
+  <div class="modal-caja">
+    <h3>Capa del mapa</h3>
+    <div id="listaCapas"></div>
+    <button class="btn texto" data-cerrar>Cancelar</button>
+  </div>
+</div>
+
+<div id="modalAjustes" class="modal" hidden>
+  <div class="modal-caja">
+    <h3>Ajustes</h3>
+    <button class="opcion" id="ajLista">Actualizar lista de beneficiarios</button>
+    <button class="opcion" id="ajZona">Guardar el mapa de esta zona para usar sin internet</button>
+    <button class="opcion" id="ajBorrarMapa">Borrar mapas guardados</button>
+    <p id="ajEspacio" class="ayuda" style="margin-top:12px"></p>
+    <button class="btn texto" data-cerrar>Cerrar</button>
+  </div>
+</div>
+
+<!-- ===================== BARRA INFERIOR ===================== -->
+<nav id="nav">
+  <button id="navMapa" class="activo">
+    <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>Mapa</button>
+  <button id="navRegistros">
+    <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>Registros</button>
+  <button id="navEnviar">
+    <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>Enviar</button>
+  <button id="navAjustes">
+    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.61 3.61 0 0 1 8.4 12c0-1.98 1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Ajustes</button>
+</nav>
+
+<div id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin></script>
+<script>
+/* ============================================================
+   Monitoreo Wellkind – versión web (PWA)
+   Funciona igual que la app Android y usa el mismo Apps Script.
+   ============================================================ */
+const CONFIG = {
+  URL_SCRIPT: 'https://script.google.com/macros/s/AKfycbyeYPGDvmqQGfzqB_maGB0rDRP5jW1sOTrThYayD0Pg1oIqPOSp99BsqO9pM2u4H4slWg/exec',
+  TOKEN: 'wellkind2026',
+  MAX_FOTOS: 5,
+  MAX_LADO_FOTO: 1600,
+  CALIDAD_JPEG: 0.7,
+  CENTRO: [14.70, -91.19],   // Lago Atitlán
+  ZOOM: 12
+};
+
+const ESTADOS = {
+  BORRADOR:  { texto: 'Borrador',           color: '#9E9E9E' },
+  PENDIENTE: { texto: 'Pendiente de envío', color: '#F39C12' },
+  ENVIADO:   { texto: 'Enviado',            color: '#3DB83A' }
+};
+
+const $ = (s) => document.querySelector(s);
+
+// ---------- Utilidades ----------
+let toastTimer = null;
+function aviso(texto, ms = 3200) {
+  const t = $('#toast');
+  t.textContent = texto;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, ms);
+}
+function normalizar(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+function dos(n) { return String(n).padStart(2, '0'); }
+function nuevoId() {
+  const d = new Date();
+  return 'R' + String(d.getFullYear()).slice(2) + dos(d.getMonth() + 1) + dos(d.getDate()) +
+    dos(d.getHours()) + dos(d.getMinutes()) + dos(d.getSeconds()) + '-' + Math.random().toString(16).slice(2, 6);
+}
+function ahora() {
+  const d = new Date();
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())} ${dos(d.getHours())}:${dos(d.getMinutes())}`;
+}
+function escapar(t) {
+  return String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function numero(t) {
+  const n = parseFloat(String(t || '').trim().replace(',', '.'));
+  return isNaN(n) ? null : n;
+}
+function rumbo(lat1, lon1, lat2, lon2) {
+  const r = Math.PI / 180;
+  const y = Math.sin((lon2 - lon1) * r) * Math.cos(lat2 * r);
+  const x = Math.cos(lat1 * r) * Math.sin(lat2 * r) - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r);
+  return (Math.atan2(y, x) / r + 360) % 360;
+}
+function cardinal(g) {
+  return ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.floor(((g % 360) + 360 + 22.5) % 360 / 45)];
+}
+function distanciaTexto(m) {
+  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(2)} km`;
+}
+
+// ---------- Base de datos en el teléfono (IndexedDB) ----------
+let _db = null;
+function abrirDb() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((ok, mal) => {
+    const req = indexedDB.open('monitoreo', 1);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      d.createObjectStore('registros', { keyPath: 'id' });
+      d.createObjectStore('kv');
+    };
+    req.onsuccess = () => { _db = req.result; ok(_db); };
+    req.onerror = () => mal(req.error);
+  });
+}
+function operacion(almacen, modo, fn) {
+  return abrirDb().then((d) => new Promise((ok, mal) => {
+    const t = d.transaction(almacen, modo);
+    const peticion = fn(t.objectStore(almacen));
+    let resultado;
+    if (peticion) peticion.onsuccess = () => { resultado = peticion.result; };
+    t.oncomplete = () => ok(resultado);
+    t.onerror = () => mal(t.error);
+    t.onabort = () => mal(t.error);
+  }));
+}
+const Reg = {
+  todos: () => operacion('registros', 'readonly', (s) => s.getAll())
+    .then((l) => (l || []).sort((a, b) => (b.fechaCaptura || '').localeCompare(a.fechaCaptura || ''))),
+  obtener: (id) => operacion('registros', 'readonly', (s) => s.get(id)),
+  guardar: (r) => operacion('registros', 'readwrite', (s) => s.put(r)),
+  borrar: (id) => operacion('registros', 'readwrite', (s) => s.delete(id))
+};
+const KV = {
+  get: (k) => operacion('kv', 'readonly', (s) => s.get(k)),
+  set: (k, v) => operacion('kv', 'readwrite', (s) => s.put(v, k))
+};
+
+// ---------- Beneficiarios (lista del Sheet) ----------
+async function beneficiarios() {
+  const datos = await KV.get('beneficiarios');
+  return datos && datos.beneficiarios ? datos : { comunidades: [], beneficiarios: [] };
+}
+async function comunidades() {
+  const d = await beneficiarios();
+  const todas = [...(d.comunidades || []), ...d.beneficiarios.map((b) => b.comunidad)].filter(Boolean);
+  const vistas = new Map();
+  todas.forEach((c) => { const k = normalizar(c); if (!vistas.has(k)) vistas.set(k, c); });
+  return [...vistas.values()].sort((a, b) => normalizar(a).localeCompare(normalizar(b)));
+}
+async function actualizarLista(manual) {
+  if (!navigator.onLine) { if (manual) aviso('Sin internet: conéctate para actualizar la lista'); return; }
+  try {
+    if (manual) aviso('Descargando lista de beneficiarios…');
+    const url = CONFIG.URL_SCRIPT + '?accion=lista&token=' + encodeURIComponent(CONFIG.TOKEN);
+    const res = await (await fetch(url)).json();
+    if (!res.ok) throw new Error(res.error || 'error del servidor');
+    await KV.set('beneficiarios', res);
+    if (manual) aviso(`Lista actualizada: ${res.beneficiarios.length} beneficiarios`);
+  } catch (e) {
+    if (manual) aviso('No se pudo actualizar la lista: ' + e.message);
+  }
+}
+
+// ============================================================
+//  MAPA
+// ============================================================
+const PLANTILLAS = {
+  satelite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  calles: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  topo: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png'
+};
+const CAPAS = {
+  satelite: { nombre: 'Satélite', max: 19, atrib: 'Imágenes © Esri, Maxar, Earthstar Geographics' },
+  calles: { nombre: 'Calles (OpenStreetMap)', max: 19, atrib: '© OpenStreetMap' },
+  topo: { nombre: 'Topográfico', max: 17, atrib: '© OpenTopoMap (CC-BY-SA)' }
+};
+let capaActual = localStorage.getItem('capa') || 'satelite';
+if (!CAPAS[capaActual]) capaActual = 'satelite';
+
+const mapa = L.map('mapa', { zoomControl: false }).setView(CONFIG.CENTRO, CONFIG.ZOOM);
+mapa.attributionControl.setPrefix(false);
+let capaBase = null;
+function ponerCapa(clave) {
+  if (capaBase) mapa.removeLayer(capaBase);
+  capaBase = L.tileLayer(PLANTILLAS[clave], {
+    maxZoom: CAPAS[clave].max, maxNativeZoom: CAPAS[clave].max, crossOrigin: true, attribution: CAPAS[clave].atrib
+  }).addTo(mapa);
+  capaActual = clave;
+  localStorage.setItem('capa', clave);
+}
+ponerCapa(capaActual);
+L.control.scale({ imperial: false, position: 'topleft', maxWidth: 120 }).addTo(mapa);
+
+const capaRegistros = L.layerGroup().addTo(mapa);
+let marcaYo = null, circuloYo = null, ultimaPos = null;
+let marcaPunto = null, puntoMarcado = null;
+
+const iconoPin = L.divIcon({
+  className: 'pin', iconSize: [40, 40], iconAnchor: [20, 40],
+  html: '<svg viewBox="0 0 24 24" width="40" height="40"><path fill="#F44336" stroke="#fff" stroke-width=".8" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>'
+});
+
+// ---------- GPS ----------
+const gpsForm = { activo: false, mejor: null };
+
+function iniciarUbicacion() {
+  if (!('geolocation' in navigator)) { aviso('Este teléfono no permite usar el GPS en el navegador'); return; }
+  navigator.geolocation.watchPosition((p) => {
+    const c = p.coords;
+    ultimaPos = { lat: c.latitude, lon: c.longitude, precision: c.accuracy, altitud: c.altitude };
+    const ll = [c.latitude, c.longitude];
+    if (!marcaYo) {
+      circuloYo = L.circle(ll, { radius: c.accuracy, color: '#4A90E2', weight: 1, fillOpacity: .12, interactive: false }).addTo(mapa);
+      marcaYo = L.circleMarker(ll, { radius: 9, color: '#fff', weight: 3, fillColor: '#2F80ED', fillOpacity: 1, interactive: false }).addTo(mapa);
+    } else {
+      marcaYo.setLatLng(ll);
+      circuloYo.setLatLng(ll).setRadius(c.accuracy);
+    }
+    $('#tvPrecision').textContent = '±' + Math.round(c.accuracy) + ' m';
+    $('#tvElevacion').textContent = c.altitude != null ? Math.round(c.altitude) + ' m' : '—';
+    if (gpsForm.activo) lecturaGpsForm(ultimaPos);
+  }, (e) => {
+    if (e.code === 1) aviso('Permite el acceso a la ubicación para usar el GPS', 5000);
+  }, { enableHighAccuracy: true, maximumAge: 0, timeout: 60000 });
+}
+
+function centrarEnMi() {
+  if (!ultimaPos) { aviso('Buscando señal GPS… sal a campo abierto'); return; }
+  mapa.setView([ultimaPos.lat, ultimaPos.lon], Math.max(mapa.getZoom(), 17));
+}
+
+// ---------- Tocar el mapa ----------
+mapa.on('click', (e) => {
+  if (!$('#menuFab').hidden) { cerrarMenu(); return; }
+  if (ultimaPos) {
+    const a = mapa.latLngToContainerPoint([ultimaPos.lat, ultimaPos.lon]);
+    const b = mapa.latLngToContainerPoint(e.latlng);
+    if (a.distanceTo(b) < 48) { marcarMiUbicacion(); return; }
+  }
+  marcarPunto(e.latlng.lat, e.latlng.lng);
+});
+
+function marcarMiUbicacion() {
+  if (!ultimaPos) { aviso('Buscando señal GPS… sal a campo abierto'); return; }
+  marcarPunto(ultimaPos.lat, ultimaPos.lon, ultimaPos.precision, ultimaPos.altitud);
+}
+
+function marcarPunto(lat, lon, precision = null, altitud = null) {
+  puntoMarcado = { lat, lon, precision, altitud };
+  if (marcaPunto) mapa.removeLayer(marcaPunto);
+  marcaPunto = L.marker([lat, lon], { icon: iconoPin, interactive: false }).addTo(mapa);
+
+  let info;
+  if (precision != null) {
+    info = (altitud != null ? `Elevación: ${Math.round(altitud)} m · ` : '') + `Mi ubicación (GPS ±${Math.round(precision)} m)`;
+  } else if (ultimaPos) {
+    const d = mapa.distance([ultimaPos.lat, ultimaPos.lon], [lat, lon]);
+    const g = rumbo(ultimaPos.lat, ultimaPos.lon, lat, lon);
+    info = `${distanciaTexto(d)}, ${Math.round(g)}° ${cardinal(g)} de mi posición`;
+  } else {
+    info = 'Mi posición todavía no está disponible';
+  }
+  $('#puntoInfo').textContent = info;
+  $('#puntoCoords').textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+  cerrarMenu();
+  $('#hoja').hidden = false;
+  $('#colIzq').hidden = true;
+  $('#colDer').hidden = true;
+}
+
+function cerrarPunto() {
+  if (marcaPunto) mapa.removeLayer(marcaPunto);
+  marcaPunto = null;
+  puntoMarcado = null;
+  $('#hoja').hidden = true;
+  $('#colIzq').hidden = false;
+  $('#colDer').hidden = false;
+}
+
+async function compartirPunto() {
+  if (!puntoMarcado) return;
+  const { lat, lon } = puntoMarcado;
+  const texto = `${lat.toFixed(6)}, ${lon.toFixed(6)}\nhttps://www.google.com/maps?q=${lat.toFixed(6)},${lon.toFixed(6)}`;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Ubicación', text: texto }); } catch (e) { /* cancelado */ }
+  } else {
+    try { await navigator.clipboard.writeText(texto); aviso('Coordenadas copiadas'); } catch (e) { aviso(texto, 6000); }
+  }
+}
+
+// ---------- Menú del botón + ----------
+function abrirMenu() {
+  $('#menuFab').hidden = false;
+  $('#icoFab').innerHTML = '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>';
+}
+function cerrarMenu() {
+  $('#menuFab').hidden = true;
+  $('#icoFab').innerHTML = '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>';
+}
+
+// ---------- Puntos de registros en el mapa ----------
+async function dibujarRegistros() {
+  const todos = await Reg.todos();
+  capaRegistros.clearLayers();
+  for (const r of todos) {
+    if (r.lat == null || r.lon == null) continue;
+    L.circleMarker([r.lat, r.lon], {
+      radius: 8, color: '#fff', weight: 2, fillColor: ESTADOS[r.estado].color, fillOpacity: 1, bubblingMouseEvents: false
+    }).on('click', () => abrirForm(r.id)).addTo(capaRegistros);
+  }
+  $('#tvPendientes').textContent = todos.filter((r) => r.estado === 'PENDIENTE').length;
+}
+
+// ============================================================
+//  NAVEGACIÓN ENTRE PANTALLAS (con botón atrás del teléfono)
+// ============================================================
+const pila = [];
+let ignorarPop = false;
+function abrirCapa(id) {
+  $(id).hidden = false;
+  pila.push(id);
+  history.pushState({ capa: id }, '');
+}
+function cerrarCapaSuperior() {
+  const id = pila.pop();
+  if (!id) return false;
+  if (id === '#vistaForm') salirDelForm();
+  $(id).hidden = true;
+  if (id === '#vistaForm' || id === '#vistaLista') {
+    if (pila.includes('#vistaLista')) { marcarNav('#navRegistros'); pintarLista(); }
+    else marcarNav('#navMapa');
+    dibujarRegistros();
+  }
+  return true;
+}
+function volver() {
+  if (pila.length) history.back();
+}
+window.addEventListener('popstate', () => {
+  if (ignorarPop) { ignorarPop = false; return; }
+  if (!cerrarCapaSuperior()) {
+    if (!$('#hoja').hidden) cerrarPunto();
+  }
+});
+function marcarNav(id) {
+  document.querySelectorAll('#nav button').forEach((b) => b.classList.remove('activo'));
+  $(id).classList.add('activo');
+}
+/** Cierra todas las pantallas abiertas y luego ejecuta "despues". */
+function cerrarTodo(despues) {
+  const n = pila.length;
+  while (pila.length) cerrarCapaSuperior();
+  if (n) {
+    ignorarPop = true;
+    history.go(-n);
+    setTimeout(() => { if (despues) despues(); }, 150);
+  } else if (despues) despues();
+}
+
+// ============================================================
+//  FORMULARIO
+// ============================================================
+let F = null;           // registro en edición
+let fEliminado = false;
+let autoguardado = null;
+
+function registroNuevo() {
+  return {
+    id: nuevoId(), beneficiarioId: '', nombre: '', comunidad: '', dpi: '', cuerdas: '',
+    tecnico: localStorage.getItem('tecnico') || '', descripcion: '',
+    lat: null, lon: null, precision: null, altitud: null,
+    fotos: [], fotosEnviadas: 0, estado: 'BORRADOR', fechaCaptura: ahora(), error: ''
+  };
+}
+
+async function abrirForm(id, punto = null, autoGps = false) {
+  cerrarPunto();
+  cerrarMenu();
+  fEliminado = false;
+  gpsForm.activo = false;
+  F = id ? await Reg.obtener(id) : null;
+  const esNuevo = !F;
+  if (esNuevo) {
+    F = registroNuevo();
+    if (punto) {
+      F.lat = punto.lat; F.lon = punto.lon;
+      F.precision = punto.precision ?? null; F.altitud = punto.altitud ?? null;
+    }
+  }
+  $('#formTitulo').textContent = esNuevo ? 'Nuevo registro' : 'Registro';
+  ['#errNombre', '#errComunidad', '#errDpi'].forEach((e) => { $(e).hidden = true; });
+  $('#fNombre').value = F.nombre;
+  $('#fComunidad').value = F.comunidad;
+  $('#fDpi').value = F.dpi || '';
+  $('#fCuerdas').value = F.cuerdas || '';
+  $('#fTecnico').value = F.tecnico;
+  $('#fObs').value = F.descripcion;
+
+  const lista = await comunidades();
+  $('#listaComunidades').innerHTML = lista.map((c) => `<option value="${escapar(c)}">`).join('');
+
+  pintarEstado();
+  await pintarBeneficiario();
+  pintarGps();
+  pintarFotos();
+  bloquearSiEnviado();
+
+  abrirCapa('#vistaForm');
+  $('#vistaForm').scrollTop = 0;
+
+  if (esNuevo) {
+    if (autoGps) iniciarGpsForm();
+    abrirSelector();
+  }
+}
+
+function leerCampos() {
+  F.nombre = $('#fNombre').value.trim();
+  F.comunidad = $('#fComunidad').value.trim();
+  F.dpi = $('#fDpi').value.replace(/\D/g, '');
+  F.cuerdas = $('#fCuerdas').value.trim();
+  F.tecnico = $('#fTecnico').value.trim();
+  F.descripcion = $('#fObs').value.trim();
+  const la = numero($('#fLat').value), lo = numero($('#fLon').value);
+  if (la != null && lo != null && la >= -90 && la <= 90 && lo >= -180 && lo <= 180) {
+    if (F.lat == null || F.lon == null || Math.abs(F.lat - la) > 2e-6 || Math.abs(F.lon - lo) > 2e-6) {
+      F.precision = null; F.altitud = null;
+    }
+    F.lat = la; F.lon = lo;
+  } else if (!$('#fLat').value.trim() && !$('#fLon').value.trim()) {
+    F.lat = null; F.lon = null; F.precision = null; F.altitud = null;
+  }
+}
+
+function hayContenido() {
+  return !!(F.nombre || F.comunidad || F.descripcion || F.dpi || F.cuerdas || F.lat != null || F.fotos.length);
+}
+
+async function guardarSiHayDatos() {
+  if (!F || fEliminado || F.estado === 'ENVIADO') return;
+  leerCampos();
+  if (hayContenido()) await Reg.guardar(F);
+}
+
+function salirDelForm() {
+  gpsForm.activo = false;
+  clearTimeout(autoguardado);
+  guardarSiHayDatos().then(dibujarRegistros);
+}
+
+function pintarEstado() {
+  const e = ESTADOS[F.estado];
+  let t = 'Estado: ' + e.texto;
+  if (F.estado === 'PENDIENTE' && F.error) t += ' · Último error: ' + F.error;
+  $('#fEstado').textContent = t;
+  $('#fEstado').style.color = e.color;
+}
+
+async function pintarBeneficiario() {
+  const deLista = !!F.beneficiarioId;
+  const editable = !deLista && F.estado !== 'ENVIADO';
+  $('#fNombre').disabled = !editable;
+  $('#fComunidad').disabled = !editable;
+  const com = $('#fComunidad').value.trim();
+  const existe = (await comunidades()).some((c) => normalizar(c) === normalizar(com));
+  let t;
+  if (deLista) t = `De la hoja «${com}» (código ${F.beneficiarioId})`;
+  else if (!com) t = 'Beneficiario nuevo: escribe o elige su comunidad';
+  else if (existe) t = `Beneficiario nuevo: se agregará a la hoja «${com}»`;
+  else t = `Comunidad nueva: se creará la hoja «${com}» al enviar`;
+  $('#fBenefInfo').textContent = t;
+  $('#fElegir').textContent = deLista ? 'Cambiar beneficiario' : 'Elegir de la lista';
+}
+
+function pintarGps() {
+  if (gpsForm.activo) return;
+  if (F.lat != null && F.lon != null) {
+    $('#fLat').value = F.lat.toFixed(6);
+    $('#fLon').value = F.lon.toFixed(6);
+    $('#fGpsInfo').textContent = F.precision != null
+      ? `GPS ±${Math.round(F.precision)} m` + (F.altitud != null ? ` · elevación ${Math.round(F.altitud)} m` : '')
+      : 'Punto marcado en el mapa o escrito a mano';
+    $('#fGps').textContent = 'Volver a tomar con GPS';
+  } else {
+    $('#fLat').value = '';
+    $('#fLon').value = '';
+    $('#fGpsInfo').textContent = 'Sin punto: usa el GPS o escribe las coordenadas';
+    $('#fGps').textContent = 'Tomar punto con GPS';
+  }
+}
+
+function pintarFotos() {
+  const cont = $('#fFotos');
+  cont.innerHTML = '';
+  F.fotos.forEach((foto, i) => {
+    const div = document.createElement('div');
+    div.className = 'foto';
+    div.innerHTML = `<img src="${foto}" alt="Foto ${i + 1}">` +
+      (F.estado !== 'ENVIADO' ? `<button aria-label="Borrar foto" data-i="${i}">✕</button>` : '');
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    if (!confirm('¿Borrar esta foto?')) return;
+    F.fotos.splice(Number(b.dataset.i), 1);
+    guardarSiHayDatos();
+    pintarFotos();
+  }));
+  $('#fFotosTitulo').textContent = `Fotos (${F.fotos.length}/${CONFIG.MAX_FOTOS})`;
+  const env = $('#fFotosEnviadas');
+  env.hidden = !(F.estado === 'ENVIADO' && F.fotosEnviadas);
+  env.textContent = `${F.fotosEnviadas} foto(s) enviada(s) a la carpeta de Drive.`;
+}
+
+function bloquearSiEnviado() {
+  const enviado = F.estado === 'ENVIADO';
+  ['#fDpi', '#fCuerdas', '#fTecnico', '#fObs', '#fLat', '#fLon'].forEach((s) => { $(s).disabled = enviado; });
+  ['#fElegir', '#fGps', '#fBotonesFoto', '#fListo', '#fBorrador'].forEach((s) => { $(s).hidden = enviado; });
+  $('#fEliminar').textContent = enviado ? 'Quitar del teléfono' : 'Eliminar registro';
+}
+
+// --- GPS del formulario ---
+function iniciarGpsForm() {
+  gpsForm.activo = true;
+  gpsForm.mejor = null;
+  $('#fGps').textContent = 'Fijar este punto';
+  $('#fGpsInfo').textContent = 'Buscando satélites… en campo abierto tarda entre 30 y 60 segundos.';
+  if (ultimaPos) lecturaGpsForm(ultimaPos);
+}
+function lecturaGpsForm(p) {
+  if (!gpsForm.mejor || p.precision <= gpsForm.mejor.precision) gpsForm.mejor = { ...p };
+  const m = gpsForm.mejor;
+  $('#fGpsInfo').textContent = `Lectura actual: ±${Math.round(p.precision)} m · mejor: ±${Math.round(m.precision)} m ` +
+    `(${m.lat.toFixed(6)}, ${m.lon.toFixed(6)}). Fija el punto cuando sea menor a 10 m.`;
+}
+function fijarPunto() {
+  const m = gpsForm.mejor;
+  if (!m) { aviso('Todavía no hay lectura GPS, espera un momento'); return; }
+  F.lat = m.lat; F.lon = m.lon; F.precision = m.precision; F.altitud = m.altitud;
+  gpsForm.activo = false;
+  pintarGps();
+  guardarSiHayDatos();
+}
+
+// --- Fotos ---
+function comprimir(archivo) {
+  return new Promise((ok, mal) => {
+    const url = URL.createObjectURL(archivo);
+    const img = new Image();
+    img.onload = () => {
+      const esc = Math.min(1, CONFIG.MAX_LADO_FOTO / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * esc);
+      c.height = Math.round(img.naturalHeight * esc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/jpeg', CONFIG.CALIDAD_JPEG));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error('No se pudo leer la foto')); };
+    img.src = url;
+  });
+}
+async function agregarFotos(lista) {
+  const archivos = [...lista];
+  if (!archivos.length) return;
+  const libres = CONFIG.MAX_FOTOS - F.fotos.length;
+  if (libres <= 0) { aviso(`Máximo ${CONFIG.MAX_FOTOS} fotos por registro`); return; }
+  if (archivos.length > libres) aviso(`Solo se agregaron ${libres} foto(s): el máximo es ${CONFIG.MAX_FOTOS}`);
+  let fallos = 0;
+  for (const a of archivos.slice(0, libres)) {
+    try { F.fotos.push(await comprimir(a)); } catch (e) { fallos++; }
+  }
+  if (fallos) aviso('Algunas fotos no se pudieron procesar');
+  await guardarSiHayDatos();
+  pintarFotos();
+}
+
+// --- Guardar / enviar / eliminar ---
+async function marcarListo() {
+  leerCampos();
+  let error = false;
+  $('#errNombre').hidden = !!F.nombre;
+  if (!F.nombre) error = true;
+  const sinComunidad = !F.beneficiarioId && !F.comunidad;
+  $('#errComunidad').hidden = !sinComunidad;
+  if (sinComunidad) error = true;
+  const dpiMal = F.dpi && F.dpi.length !== 13;
+  $('#errDpi').hidden = !dpiMal;
+  if (dpiMal) error = true;
+  if (error) { aviso('Revisa los campos marcados en rojo'); return; }
+  if (gpsForm.activo) { aviso('Primero toca «Fijar este punto»'); return; }
+  if (F.lat == null && !confirm('Este registro no tiene ubicación. ¿Marcarlo como listo de todas formas?')) return;
+
+  F.estado = 'PENDIENTE';
+  F.error = '';
+  await Reg.guardar(F);
+  localStorage.setItem('tecnico', F.tecnico);
+  aviso('Guardado. Se enviará automáticamente cuando haya señal.');
+  volver();
+  sincronizar(false);
+}
+
+async function guardarBorrador() {
+  leerCampos();
+  if (hayContenido()) {
+    F.estado = 'BORRADOR';
+    await Reg.guardar(F);
+    localStorage.setItem('tecnico', F.tecnico);
+    aviso('Borrador guardado');
+  }
+  volver();
+}
+
+async function eliminar() {
+  const enviado = F.estado === 'ENVIADO';
+  const msg = enviado
+    ? 'El registro ya está en Google Sheets y Drive; solo se borrará de este teléfono. ¿Continuar?'
+    : 'Se borrarán los datos y las fotos de este registro. No se puede deshacer. ¿Eliminar?';
+  if (!confirm(msg)) return;
+  await Reg.borrar(F.id);
+  fEliminado = true;
+  volver();
+}
+
+// ============================================================
+//  SELECTOR DE BENEFICIARIO
+// ============================================================
+let selFiltrados = [];
+async function abrirSelector() {
+  const datos = await beneficiarios();
+  const todos = datos.beneficiarios;
+  if (!todos.length) {
+    if (confirm('Todavía no se ha descargado la lista de beneficiarios. Con señal, usa Ajustes → Actualizar lista. ¿Registrar un beneficiario nuevo mientras tanto?')) usarNuevo(null);
+    return;
+  }
+  const coms = await comunidades();
+  const hechos = new Set((await Reg.todos()).map((r) => r.beneficiarioId).filter(Boolean));
+  $('#selTitulo').textContent = `Elegir beneficiario (${todos.length})`;
+  $('#selComunidad').innerHTML = '<option value="">Todas las comunidades</option>' +
+    coms.map((c) => `<option value="${escapar(c)}">${escapar(c)} (${todos.filter((b) => b.comunidad === c).length})</option>`).join('');
+  $('#selBuscar').value = '';
+
+  const pintar = () => {
+    const com = $('#selComunidad').value;
+    const t = normalizar($('#selBuscar').value);
+    selFiltrados = todos.filter((b) => (!com || b.comunidad === com) &&
+      (!t || normalizar(`${b.nombre} ${b.comunidad} ${b.dpi || b.extra || ''}`).includes(t)));
+    $('#selLista').innerHTML = selFiltrados.slice(0, 400).map((b, i) => {
+      const marca = (b.monitoreado || hechos.has(b.id)) ? '✓ ' : '';
+      const det = [b.comunidad, b.dpi || b.extra].filter(Boolean).join(' · ');
+      return `<li data-i="${i}">${marca}${escapar(b.nombre)}<small>${escapar(det)}</small></li>`;
+    }).join('') || '<li class="vacio">No hay coincidencias</li>';
+  };
+  $('#selComunidad').onchange = pintar;
+  $('#selBuscar').oninput = pintar;
+  $('#selLista').onclick = (e) => {
+    const li = e.target.closest('li[data-i]');
+    if (!li) return;
+    usarBeneficiario(selFiltrados[Number(li.dataset.i)]);
+    cerrarModal('#modalSelector');
+  };
+  $('#selNuevo').onclick = () => { const c = $('#selComunidad').value || null; cerrarModal('#modalSelector'); usarNuevo(c); };
+  pintar();
+  abrirModal('#modalSelector');
+}
+
+function usarBeneficiario(b) {
+  F.beneficiarioId = b.id;
+  $('#fNombre').value = b.nombre;
+  $('#fComunidad').value = b.comunidad;
+  if (!$('#fDpi').value && b.dpi) $('#fDpi').value = b.dpi;
+  if (!$('#fCuerdas').value && b.cuerdas) $('#fCuerdas').value = b.cuerdas;
+  leerCampos();
+  pintarBeneficiario();
+  guardarSiHayDatos();
+}
+
+function usarNuevo(comunidad) {
+  if (F.beneficiarioId) { $('#fNombre').value = ''; $('#fComunidad').value = ''; }
+  F.beneficiarioId = '';
+  if (comunidad) $('#fComunidad').value = comunidad;
+  leerCampos();
+  pintarBeneficiario();
+  $('#fNombre').focus();
+}
+
+// ============================================================
+//  LISTA DE REGISTROS
+// ============================================================
+async function abrirLista() {
+  cerrarPunto();
+  cerrarMenu();
+  await pintarLista();
+  if (!pila.includes('#vistaLista')) abrirCapa('#vistaLista');
+  marcarNav('#navRegistros');
+}
+async function pintarLista() {
+  const todos = await Reg.todos();
+  const n = (e) => todos.filter((r) => r.estado === e).length;
+  $('#listaResumen').textContent = `${n('BORRADOR')} borradores · ${n('PENDIENTE')} pendientes de envío · ${n('ENVIADO')} enviados`;
+  $('#listaReg').innerHTML = todos.map((r) => {
+    const det = [r.comunidad, r.fechaCaptura, `${(r.fotos || []).length || r.fotosEnviadas || 0} fotos`, r.lat == null ? 'sin GPS' : '']
+      .filter(Boolean).join(' · ');
+    const est = ESTADOS[r.estado];
+    const txt = r.estado === 'PENDIENTE' && r.error ? `${est.texto} – error: ${r.error}` : est.texto;
+    return `<li data-id="${escapar(r.id)}"><b>${escapar(r.nombre || '(sin nombre)')}</b><span>${escapar(det)}</span>` +
+      `<em style="color:${est.color}">${escapar(txt)}</em></li>`;
+  }).join('') || '<li class="vacio">Todavía no hay registros. Toca tu ubicación en el mapa para empezar.</li>';
+}
+
+// ============================================================
+//  ENVÍO AL GOOGLE SHEET
+// ============================================================
+let sincronizando = false;
+async function sincronizar(manual) {
+  if (sincronizando) return;
+  const pendientes = (await Reg.todos()).filter((r) => r.estado === 'PENDIENTE');
+  if (!pendientes.length) { if (manual) aviso('No hay registros pendientes de envío'); return; }
+  if (!navigator.onLine) { if (manual) aviso('Sin señal. Se enviarán cuando vuelva el internet.'); return; }
+  sincronizando = true;
+  if (manual) aviso('Enviando…');
+  let enviados = 0, conError = 0;
+  try {
+    for (const r of pendientes) {
+      const datos = {
+        token: CONFIG.TOKEN, id: r.id, beneficiarioId: r.beneficiarioId || '',
+        dpi: r.dpi || '', cuerdas: r.cuerdas || '', fechaCaptura: r.fechaCaptura, tecnico: r.tecnico,
+        nombre: r.nombre, comunidad: r.comunidad, descripcion: r.descripcion,
+        fotos: (r.fotos || []).map((f) => f.split(',')[1])
+      };
+      if (r.lat != null) { datos.lat = r.lat; datos.lon = r.lon; }
+      if (r.precision != null) datos.precision = Math.round(r.precision);
+      if (r.altitud != null) datos.altitud = Math.round(r.altitud);
+      let resp;
+      try {
+        resp = await fetch(CONFIG.URL_SCRIPT, { method: 'POST', body: JSON.stringify(datos) });
+      } catch (e) {
+        break; // se perdió la señal: se reintenta después
+      }
+      const res = await resp.json().catch(() => null);
+      if (res && res.ok) {
+        r.estado = 'ENVIADO';
+        r.error = '';
+        r.fotosEnviadas = (r.fotos || []).length;
+        r.fotos = []; // libera espacio: las fotos ya están en Drive
+        enviados++;
+      } else {
+        r.error = (res && res.error) || `Respuesta inesperada del servidor (${resp.status})`;
+        conError++;
+      }
+      await Reg.guardar(r);
+    }
+  } finally {
+    sincronizando = false;
+  }
+  if (enviados) aviso(enviados === 1 ? '1 registro enviado' : `${enviados} registros enviados`);
+  else if (conError && manual) aviso('No se pudo enviar. Revisa el error en Registros.');
+  dibujarRegistros();
+  if (!$('#vistaLista').hidden) pintarLista();
+}
+
+// ============================================================
+//  MAPA SIN INTERNET
+// ============================================================
+function tileX(lon, z) { return Math.floor((lon + 180) / 360 * 2 ** z); }
+function tileY(lat, z) {
+  const r = lat * Math.PI / 180;
+  return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z);
+}
+async function guardarZona() {
+  if (!navigator.onLine) { aviso('Necesitas internet para guardar el mapa'); return; }
+  if (!('caches' in window)) { aviso('Este navegador no permite guardar mapas'); return; }
+  const b = mapa.getBounds();
+  const zMin = Math.max(8, Math.floor(mapa.getZoom()) - 2);
+  const zMax = Math.min(CAPAS[capaActual].max, 18);
+  const urls = [];
+  for (let z = zMin; z <= zMax; z++) {
+    for (let x = tileX(b.getWest(), z); x <= tileX(b.getEast(), z); x++) {
+      for (let y = tileY(b.getNorth(), z); y <= tileY(b.getSouth(), z); y++) {
+        urls.push(L.Util.template(PLANTILLAS[capaActual], { x, y, z }));
+      }
+    }
+  }
+  const mb = Math.round(urls.length * 0.025);
+  if (urls.length > 6000) { aviso('La zona es muy grande. Acerca más el mapa y vuelve a intentar.', 5000); return; }
+  if (!confirm(`Se guardará la capa «${CAPAS[capaActual].nombre}» de la zona visible (${urls.length} imágenes, unos ${mb} MB). ¿Continuar?`)) return;
+  cerrarModal('#modalAjustes');
+  const cache = await caches.open('mapa-v1');
+  let hechos = 0, fallos = 0, i = 0;
+  const trabajador = async () => {
+    while (i < urls.length) {
+      const u = urls[i++];
+      try {
+        if (!(await cache.match(u))) {
+          const r = await fetch(u, { mode: 'cors' });
+          if (r.ok) await cache.put(u, r); else fallos++;
+        }
+      } catch (e) { fallos++; }
+      hechos++;
+      if (hechos % 25 === 0) aviso(`Guardando mapa… ${Math.round(hechos * 100 / urls.length)} %`, 2000);
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, trabajador));
+  aviso(fallos ? `Mapa guardado (${fallos} imágenes no se pudieron bajar)` : 'Mapa de la zona guardado para usar sin internet', 4500);
+}
+async function borrarMapas() {
+  if (!confirm('¿Borrar todos los mapas guardados en el teléfono?')) return;
+  if ('caches' in window) await caches.delete('mapa-v1');
+  aviso('Mapas guardados borrados');
+  mostrarEspacio();
+}
+async function mostrarEspacio() {
+  if (!navigator.storage || !navigator.storage.estimate) { $('#ajEspacio').textContent = ''; return; }
+  const e = await navigator.storage.estimate();
+  $('#ajEspacio').textContent = `Espacio usado por la app: ${Math.round((e.usage || 0) / 1048576)} MB`;
+}
+
+// ============================================================
+//  VENTANAS
+// ============================================================
+function abrirModal(id) { abrirCapa(id); }
+function cerrarModal(id) {
+  if (pila[pila.length - 1] === id) history.back();
+}
+document.querySelectorAll('.modal').forEach((m) => {
+  m.addEventListener('click', (e) => { if (e.target === m) cerrarModal('#' + m.id); });
+  m.querySelectorAll('[data-cerrar]').forEach((b) => b.addEventListener('click', () => cerrarModal('#' + m.id)));
+});
+function abrirCapas() {
+  $('#listaCapas').innerHTML = Object.entries(CAPAS).map(([k, c]) =>
+    `<button class="opcion" data-capa="${k}"><span class="marca">${k === capaActual ? '✓' : ''}</span>${c.nombre}</button>`).join('');
+  $('#listaCapas').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    ponerCapa(b.dataset.capa);
+    cerrarModal('#modalCapas');
+  }));
+  abrirModal('#modalCapas');
+}
+
+// ============================================================
+//  EVENTOS
+// ============================================================
+$('#btnCapas').onclick = abrirCapas;
+$('#btnCentrar').onclick = centrarEnMi;
+$('#btnFab').onclick = () => ($('#menuFab').hidden ? abrirMenu() : cerrarMenu());
+$('#opMiUbicacion').onclick = () => { cerrarMenu(); marcarMiUbicacion(); };
+$('#opCentro').onclick = () => { cerrarMenu(); const c = mapa.getCenter(); marcarPunto(c.lat, c.lng); };
+$('#btnGuardarPunto').onclick = () => { const p = puntoMarcado; if (p) abrirForm(null, p); };
+$('#btnCompartir').onclick = compartirPunto;
+$('#btnCerrarPunto').onclick = cerrarPunto;
+
+$('#navMapa').onclick = () => { cerrarTodo(); cerrarPunto(); cerrarMenu(); marcarNav('#navMapa'); };
+$('#navRegistros').onclick = () => {
+  if (pila.length && pila[pila.length - 1] === '#vistaLista') return;
+  cerrarTodo(abrirLista);
+};
+$('#navEnviar').onclick = () => sincronizar(true);
+$('#navAjustes').onclick = () => { if (!pila.includes('#modalAjustes')) { mostrarEspacio(); abrirModal('#modalAjustes'); } };
+
+$('#formVolver').onclick = volver;
+$('#listaVolver').onclick = volver;
+$('#listaEnviar').onclick = () => sincronizar(true);
+$('#listaReg').onclick = (e) => { const li = e.target.closest('li[data-id]'); if (li) abrirForm(li.dataset.id); };
+
+$('#fElegir').onclick = abrirSelector;
+$('#fGps').onclick = () => (gpsForm.activo ? fijarPunto() : iniciarGpsForm());
+$('#fCamara').onclick = () => { if (F.fotos.length >= CONFIG.MAX_FOTOS) aviso(`Máximo ${CONFIG.MAX_FOTOS} fotos por registro`); else $('#inCamara').click(); };
+$('#fGaleria').onclick = () => { if (F.fotos.length >= CONFIG.MAX_FOTOS) aviso(`Máximo ${CONFIG.MAX_FOTOS} fotos por registro`); else $('#inGaleria').click(); };
+$('#inCamara').onchange = (e) => { agregarFotos(e.target.files); e.target.value = ''; };
+$('#inGaleria').onchange = (e) => { agregarFotos(e.target.files); e.target.value = ''; };
+$('#fListo').onclick = marcarListo;
+$('#fBorrador').onclick = guardarBorrador;
+$('#fEliminar').onclick = eliminar;
+
+['#fNombre', '#fComunidad', '#fDpi', '#fCuerdas', '#fTecnico', '#fObs', '#fLat', '#fLon'].forEach((s) => {
+  $(s).addEventListener('input', () => {
+    if (s === '#fComunidad') pintarBeneficiario();
+    clearTimeout(autoguardado);
+    autoguardado = setTimeout(guardarSiHayDatos, 800);
+  });
+});
+
+$('#ajLista').onclick = () => { cerrarModal('#modalAjustes'); actualizarLista(true); };
+$('#ajZona').onclick = guardarZona;
+$('#ajBorrarMapa').onclick = borrarMapas;
+
+window.addEventListener('online', () => { sincronizar(false); actualizarLista(false); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sincronizar(false); });
+setInterval(() => sincronizar(false), 60000);
+
+// ============================================================
+//  INICIO
+// ============================================================
+(async function inicio() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  iniciarUbicacion();
+  await dibujarRegistros();
+  actualizarLista(false);
+  sincronizar(false);
+})();
+</script>
+</body>
+</html>
