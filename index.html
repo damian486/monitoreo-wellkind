@@ -141,6 +141,30 @@
     border-bottom: 1px solid var(--linea); padding: 15px 4px; text-align: left; font-size: 16px; }
   .opcion .marca { width: 20px; color: var(--verde); font-weight: 700; }
 
+  /* ===== Editar el área (parcela) ===== */
+  #vistaParcela { position: fixed; inset: 0; z-index: 950; background: var(--fondo); }
+  .barra-par { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: 10px;
+    background: #202124; padding: calc(10px + var(--sup)) 12px 10px; }
+  .barra-par h1 { flex: 1; margin: 0; text-align: center; font-size: 17px; }
+  .btn-borde { background: none; border: 1.5px solid var(--verde); color: var(--verde); border-radius: 6px; padding: 9px 14px; font-weight: 700; }
+  .btn-verde { background: var(--verde); border: none; color: var(--verde-texto); border-radius: 6px; padding: 10px 16px; font-weight: 700; }
+  #mapaParcela { position: absolute; left: 0; right: 0; top: calc(62px + var(--sup)); bottom: calc(46px + var(--inf)); background: #111; }
+  #parAyuda { position: absolute; z-index: 3; left: 12px; right: 12px; top: calc(72px + var(--sup)); background: var(--panel);
+    border-radius: 14px; padding: 12px 14px; font-size: 14px; line-height: 1.4; }
+  #parIzq { position: absolute; z-index: 3; left: 14px; bottom: calc(60px + var(--inf)); display: flex; flex-direction: column; gap: 12px; }
+  #parDer { position: absolute; z-index: 3; right: 14px; bottom: calc(60px + var(--inf)); display: flex; gap: 12px; }
+  .redondo.chico { width: 50px; height: 50px; }
+  #parEstado { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; height: calc(46px + var(--inf)); padding: 0 16px var(--inf);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--fondo); }
+  #parGps { color: var(--gris); font-size: 13px; white-space: nowrap; }
+  #parTexto { font-weight: 700; font-size: 15px; text-align: right; }
+  .vertice-caja, .medio-caja, .etiqueta-lado { background: none; border: none; display: flex; align-items: center; justify-content: center; }
+  .vertice { width: 20px; height: 20px; border-radius: 50%; background: #3DB83A; border: 2.5px solid #1B5E20; box-sizing: border-box; }
+  .vertice-caja.activo .vertice { background: #FFD54F; transform: scale(1.45); }
+  .medio { width: 11px; height: 11px; border-radius: 50%; background: #3DB83A; border: 1.5px solid #1B5E20; }
+  .etiqueta-lado span { position: absolute; left: 0; top: 0; display: block; color: #fff; font-weight: 700; font-size: 13px;
+    white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; }
+
   #toast { position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%);
     bottom: calc(var(--nav) + var(--inf) + 18px); max-width: 90vw; background: #3A3B3F; color: #fff;
     padding: 12px 18px; border-radius: 22px; font-size: 15px; box-shadow: 0 4px 14px rgba(0,0,0,.5); text-align: center; }
@@ -170,6 +194,9 @@
   <div id="menuFab" hidden>
     <button id="opMiUbicacion">Registrar en mi ubicación
       <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A8.99 8.99 0 0 0 13 3.06V1h-2v2.06A8.99 8.99 0 0 0 3.06 11H1v2h2.06A8.99 8.99 0 0 0 11 20.94V23h2v-2.06A8.99 8.99 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>
+    </button>
+    <button id="opParcela">Dibujar parcela (polígono)
+      <svg viewBox="0 0 24 24"><path fill="none" stroke="#3DB83A" stroke-width="1.8" stroke-linejoin="round" d="M5 6l12-3 4 10-8 8-9-5z"/><circle cx="5" cy="6" r="1.7" fill="#3DB83A"/><circle cx="17" cy="3" r="1.7" fill="#3DB83A"/><circle cx="21" cy="13" r="1.7" fill="#3DB83A"/><circle cx="13" cy="21" r="1.7" fill="#3DB83A"/><circle cx="4" cy="16" r="1.7" fill="#3DB83A"/></svg>
     </button>
     <button id="opCentro">Marcar el centro del mapa
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
@@ -229,6 +256,10 @@
     <p id="fGpsInfo" class="ayuda"></p>
     <button id="fGps" class="btn secundario">Tomar punto con GPS</button>
 
+    <h2>Parcela (polígono)</h2>
+    <p id="fParcelaInfo" class="ayuda"></p>
+    <button id="fParcela" class="btn secundario">Dibujar parcela</button>
+
     <h2 id="fFotosTitulo">Fotos</h2>
     <div id="fFotos" class="fotos"></div>
     <p id="fFotosEnviadas" class="ayuda" hidden></p>
@@ -258,7 +289,36 @@
   </div>
 </section>
 
+<!-- ===================== EDITAR EL ÁREA ===================== -->
+<section id="vistaParcela" hidden>
+  <div class="barra-par">
+    <button class="btn-borde" id="parCancelar">Cancelar</button>
+    <h1>Editar el área</h1>
+    <button class="btn-verde" id="parGuardar">Guardar</button>
+  </div>
+  <div id="mapaParcela"></div>
+  <div id="parAyuda">Toca el mapa en cada esquina de la parcela. Arrastra una esquina para moverla, o arrastra un punto pequeño de la orilla para agregar una esquina en medio.</div>
+  <div id="parIzq">
+    <button class="redondo chico" id="parCentrar" aria-label="Ir a mi ubicación"><svg viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></button>
+    <button class="redondo chico" id="parCapas" aria-label="Capas del mapa"><svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg></button>
+  </div>
+  <div id="parDer">
+    <button class="redondo chico" id="parGpsBtn" aria-label="Agregar esquina con GPS"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A8.99 8.99 0 0 0 13 3.06V1h-2v2.06A8.99 8.99 0 0 0 3.06 11H1v2h2.06A8.99 8.99 0 0 0 11 20.94V23h2v-2.06A8.99 8.99 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg></button>
+    <button class="redondo chico" id="parDeshacer" aria-label="Deshacer (mantén presionado para borrar todo)"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+    <button class="redondo chico" id="parRehacer" aria-label="Rehacer"><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+  </div>
+  <div id="parEstado"><span id="parGps">GPS buscando…</span><span id="parTexto"></span></div>
+</section>
+
 <!-- ===================== VENTANAS ===================== -->
+<div id="modalCuerda" class="modal" hidden>
+  <div class="modal-caja">
+    <h3>Tamaño de la cuerda</h3>
+    <div id="listaCuerdas"></div>
+    <button class="btn texto" data-cerrar>Cancelar</button>
+  </div>
+</div>
+
 <div id="modalSelector" class="modal" hidden>
   <div class="modal-caja">
     <h3 id="selTitulo">Elegir beneficiario</h3>
@@ -284,6 +344,7 @@
     <button class="opcion" id="ajLista">Actualizar lista de beneficiarios</button>
     <button class="opcion" id="ajZona">Guardar el mapa de esta zona para usar sin internet</button>
     <button class="opcion" id="ajBorrarMapa">Borrar mapas guardados</button>
+    <button class="opcion" id="ajCuerda">Tamaño de la cuerda</button>
     <p id="ajEspacio" class="ayuda" style="margin-top:12px"></p>
     <button class="btn texto" data-cerrar>Cerrar</button>
   </div>
@@ -318,6 +379,10 @@ const CONFIG = {
   CENTRO: [14.70, -91.19],   // Lago Atitlán
   ZOOM: 12
 };
+
+// Estado de la pantalla "Editar el área"
+const P = { mapa: null, base: null, capa: null, figura: null, yo: null, puntos: [],
+  deshacer: [], rehacer: [], cambios: false, origen: null };
 
 const ESTADOS = {
   BORRADOR:  { texto: 'Borrador',           color: '#9E9E9E' },
@@ -436,27 +501,41 @@ async function actualizarLista(manual) {
 // ============================================================
 //  MAPA
 // ============================================================
+// Año del mosaico Sentinel-2 sin nubes. Si EOX publica uno más nuevo, solo se cambia este número.
+const ANIO_SENTINEL = 2023;
 const PLANTILLAS = {
   satelite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  clarity: 'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  sentinel: `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${ANIO_SENTINEL}_3857/default/g/{z}/{y}/{x}.jpg`,
   calles: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   topo: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png'
 };
+// max = último zoom con imagen real; más cerca se amplía esa imagen
 const CAPAS = {
-  satelite: { nombre: 'Satélite', max: 19, atrib: 'Imágenes © Esri, Maxar, Earthstar Geographics' },
-  calles: { nombre: 'Calles (OpenStreetMap)', max: 19, atrib: '© OpenStreetMap' },
-  topo: { nombre: 'Topográfico', max: 17, atrib: '© OpenTopoMap (CC-BY-SA)' }
+  satelite: { nombre: 'Satélite (Esri)', max: 18, cors: true, atrib: 'Imágenes © Esri, Maxar, Earthstar Geographics' },
+  clarity: { nombre: 'Satélite nítido (Esri Clarity)', max: 18, cors: true, atrib: 'Imágenes © Esri (Clarity)' },
+  sentinel: { nombre: `Satélite reciente ${ANIO_SENTINEL} (Sentinel-2, 10 m)`, max: 15, cors: false,
+    atrib: `Sentinel-2 cloudless – s2maps.eu por EOX IT Services GmbH (Copernicus Sentinel data ${ANIO_SENTINEL})` },
+  calles: { nombre: 'Calles (OpenStreetMap)', max: 19, cors: true, atrib: '© OpenStreetMap' },
+  topo: { nombre: 'Topográfico', max: 17, cors: true, atrib: '© OpenTopoMap (CC-BY-SA)' }
 };
 let capaActual = localStorage.getItem('capa') || 'satelite';
 if (!CAPAS[capaActual]) capaActual = 'satelite';
 
-const mapa = L.map('mapa', { zoomControl: false }).setView(CONFIG.CENTRO, CONFIG.ZOOM);
+const mapa = L.map('mapa', { zoomControl: false, maxZoom: 22 }).setView(CONFIG.CENTRO, CONFIG.ZOOM);
 mapa.attributionControl.setPrefix(false);
 let capaBase = null;
+function crearCapa(clave) {
+  const c = CAPAS[clave];
+  return L.tileLayer(PLANTILLAS[clave], { maxNativeZoom: c.max, maxZoom: 22, crossOrigin: c.cors ? true : undefined, attribution: c.atrib });
+}
 function ponerCapa(clave) {
   if (capaBase) mapa.removeLayer(capaBase);
-  capaBase = L.tileLayer(PLANTILLAS[clave], {
-    maxZoom: CAPAS[clave].max, maxNativeZoom: CAPAS[clave].max, crossOrigin: true, attribution: CAPAS[clave].atrib
-  }).addTo(mapa);
+  capaBase = crearCapa(clave).addTo(mapa);
+  if (P.mapa) {
+    if (P.base) P.mapa.removeLayer(P.base);
+    P.base = crearCapa(clave).addTo(P.mapa);
+  }
   capaActual = clave;
   localStorage.setItem('capa', clave);
 }
@@ -491,6 +570,11 @@ function iniciarUbicacion() {
     $('#tvPrecision').textContent = '±' + Math.round(c.accuracy) + ' m';
     $('#tvElevacion').textContent = c.altitude != null ? Math.round(c.altitude) + ' m' : '—';
     if (gpsForm.activo) lecturaGpsForm(ultimaPos);
+    if (P.mapa) {
+      if (!P.yo) P.yo = L.circleMarker(ll, { radius: 8, color: '#fff', weight: 3, fillColor: '#2F80ED', fillOpacity: 1, interactive: false }).addTo(P.mapa);
+      else P.yo.setLatLng(ll);
+      if (!$('#vistaParcela').hidden) estadoParcela();
+    }
   }, (e) => {
     if (e.code === 1) aviso('Permite el acceso a la ubicación para usar el GPS', 5000);
   }, { enableHighAccuracy: true, maximumAge: 0, timeout: 60000 });
@@ -576,6 +660,10 @@ async function dibujarRegistros() {
   const todos = await Reg.todos();
   capaRegistros.clearLayers();
   for (const r of todos) {
+    if (r.poligono && r.poligono.length >= 3) {
+      L.polygon(r.poligono, { color: ESTADOS[r.estado].color, weight: 2.5, fillOpacity: .25, bubblingMouseEvents: false })
+        .on('click', () => abrirForm(r.id)).addTo(capaRegistros);
+    }
     if (r.lat == null || r.lon == null) continue;
     L.circleMarker([r.lat, r.lon], {
       radius: 8, color: '#fff', weight: 2, fillColor: ESTADOS[r.estado].color, fillOpacity: 1, bubblingMouseEvents: false
@@ -642,11 +730,12 @@ function registroNuevo() {
     id: nuevoId(), beneficiarioId: '', nombre: '', comunidad: '', dpi: '', cuerdas: '',
     tecnico: localStorage.getItem('tecnico') || '', descripcion: '',
     lat: null, lon: null, precision: null, altitud: null,
-    fotos: [], fotosEnviadas: 0, estado: 'BORRADOR', fechaCaptura: ahora(), error: ''
+    fotos: [], fotosEnviadas: 0, estado: 'BORRADOR', fechaCaptura: ahora(), error: '',
+    poligono: [], area: null
   };
 }
 
-async function abrirForm(id, punto = null, autoGps = false) {
+async function abrirForm(id, punto = null, autoGps = false, parcela = null) {
   cerrarPunto();
   cerrarMenu();
   fEliminado = false;
@@ -659,7 +748,14 @@ async function abrirForm(id, punto = null, autoGps = false) {
       F.lat = punto.lat; F.lon = punto.lon;
       F.precision = punto.precision ?? null; F.altitud = punto.altitud ?? null;
     }
+    if (parcela && parcela.puntos.length >= 3) {
+      F.poligono = parcela.puntos;
+      F.area = parcela.area;
+      F.cuerdas = (parcela.area / m2PorCuerda()).toFixed(2);
+      if (F.lat == null) { const c = centroP(parcela.puntos); F.lat = c[0]; F.lon = c[1]; }
+    }
   }
+  if (!F.poligono) F.poligono = [];
   $('#formTitulo').textContent = esNuevo ? 'Nuevo registro' : 'Registro';
   ['#errNombre', '#errComunidad', '#errDpi'].forEach((e) => { $(e).hidden = true; });
   $('#fNombre').value = F.nombre;
@@ -675,6 +771,7 @@ async function abrirForm(id, punto = null, autoGps = false) {
   pintarEstado();
   await pintarBeneficiario();
   pintarGps();
+  pintarParcela();
   pintarFotos();
   bloquearSiEnviado();
 
@@ -706,7 +803,7 @@ function leerCampos() {
 }
 
 function hayContenido() {
-  return !!(F.nombre || F.comunidad || F.descripcion || F.dpi || F.cuerdas || F.lat != null || F.fotos.length);
+  return !!(F.nombre || F.comunidad || F.descripcion || F.dpi || F.cuerdas || F.lat != null || F.fotos.length || (F.poligono || []).length);
 }
 
 async function guardarSiHayDatos() {
@@ -787,7 +884,7 @@ function pintarFotos() {
 function bloquearSiEnviado() {
   const enviado = F.estado === 'ENVIADO';
   ['#fDpi', '#fCuerdas', '#fTecnico', '#fObs', '#fLat', '#fLon'].forEach((s) => { $(s).disabled = enviado; });
-  ['#fElegir', '#fGps', '#fBotonesFoto', '#fListo', '#fBorrador'].forEach((s) => { $(s).hidden = enviado; });
+  ['#fElegir', '#fGps', '#fParcela', '#fBotonesFoto', '#fListo', '#fBorrador'].forEach((s) => { $(s).hidden = enviado; });
   $('#fEliminar').textContent = enviado ? 'Quitar del teléfono' : 'Eliminar registro';
 }
 
@@ -971,7 +1068,8 @@ async function pintarLista() {
   const n = (e) => todos.filter((r) => r.estado === e).length;
   $('#listaResumen').textContent = `${n('BORRADOR')} borradores · ${n('PENDIENTE')} pendientes de envío · ${n('ENVIADO')} enviados`;
   $('#listaReg').innerHTML = todos.map((r) => {
-    const det = [r.comunidad, r.fechaCaptura, `${(r.fotos || []).length || r.fotosEnviadas || 0} fotos`, r.lat == null ? 'sin GPS' : '']
+    const det = [r.comunidad, r.fechaCaptura, `${(r.fotos || []).length || r.fotosEnviadas || 0} fotos`,
+      r.area ? `${(r.area / 10000).toFixed(4)} ha` : '', r.lat == null ? 'sin GPS' : '']
       .filter(Boolean).join(' · ');
     const est = ESTADOS[r.estado];
     const txt = r.estado === 'PENDIENTE' && r.error ? `${est.texto} – error: ${r.error}` : est.texto;
@@ -998,8 +1096,13 @@ async function sincronizar(manual) {
         token: CONFIG.TOKEN, id: r.id, beneficiarioId: r.beneficiarioId || '',
         dpi: r.dpi || '', cuerdas: r.cuerdas || '', fechaCaptura: r.fechaCaptura, tecnico: r.tecnico,
         nombre: r.nombre, comunidad: r.comunidad, descripcion: r.descripcion,
-        fotos: (r.fotos || []).map((f) => f.split(',')[1])
+        fotos: (r.fotos || []).map((f) => f.split(',')[1]),
+        m2Cuerda: m2PorCuerda()
       };
+      if (r.poligono && r.poligono.length >= 3) {
+        datos.poligono = aWkt(r.poligono);
+        if (r.area != null) datos.area = Math.round(r.area * 10) / 10;
+      }
       if (r.lat != null) { datos.lat = r.lat; datos.lon = r.lon; }
       if (r.precision != null) datos.precision = Math.round(r.precision);
       if (r.altitud != null) datos.altitud = Math.round(r.altitud);
@@ -1109,6 +1212,246 @@ function abrirCapas() {
 }
 
 // ============================================================
+//  PARCELA (POLÍGONO) – pantalla "Editar el área"
+// ============================================================
+const M2_CUERDA_DEFECTO = 628.9;   // 30 × 30 varas
+function m2PorCuerda() { return parseFloat(localStorage.getItem('m2_cuerda')) || M2_CUERDA_DEFECTO; }
+function areaPoligono(p) {
+  if (!p || p.length < 3) return 0;
+  const R = 6378137, rad = Math.PI / 180;
+  let s = 0;
+  for (let i = 0; i < p.length; i++) {
+    const a = p[i], b = p[(i + 1) % p.length];
+    s += (b[1] - a[1]) * rad * (2 + Math.sin(a[0] * rad) + Math.sin(b[0] * rad));
+  }
+  return Math.abs(s * R * R / 2);
+}
+function distanciaP(a, b) { return L.latLng(a[0], a[1]).distanceTo(L.latLng(b[0], b[1])); }
+function perimetro(p) {
+  if (p.length < 2) return 0;
+  let t = 0;
+  for (let i = 0; i < p.length; i++) t += distanciaP(p[i], p[(i + 1) % p.length]);
+  return t;
+}
+function centroP(p) {
+  return [p.reduce((s, x) => s + x[0], 0) / p.length, p.reduce((s, x) => s + x[1], 0) / p.length];
+}
+function seCruzan(p) {
+  const n = p.length;
+  if (n < 4) return false;
+  const giro = (a, b, c) => (c[0] - a[0]) * (b[1] - a[1]) > (b[0] - a[0]) * (c[1] - a[1]);
+  const cruza = (a, b, c, d) => giro(a, c, d) !== giro(b, c, d) && giro(a, b, c) !== giro(a, b, d);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    if (j === i + 1 || (i === 0 && j === n - 1)) continue;
+    if (cruza(p[i], p[(i + 1) % n], p[j], p[(j + 1) % n])) return true;
+  }
+  return false;
+}
+function aWkt(p) {
+  if (!p || p.length < 3) return '';
+  return 'POLYGON((' + [...p, p[0]].map((x) => `${x[1].toFixed(7)} ${x[0].toFixed(7)}`).join(', ') + '))';
+}
+function textoArea(m2) {
+  return `${Math.round(m2).toLocaleString('en-US')} m² · ${(m2 / m2PorCuerda()).toFixed(2)} cuerdas`;
+}
+
+function abrirParcela(origen, puntos, centro) {
+  P.origen = origen;
+  P.puntos = (puntos || []).map((x) => [x[0], x[1]]);
+  P.deshacer = []; P.rehacer = []; P.cambios = false;
+  cerrarPunto(); cerrarMenu();
+  abrirCapa('#vistaParcela');
+  if (!P.mapa) {
+    P.mapa = L.map('mapaParcela', { zoomControl: false, maxZoom: 22 });
+    P.mapa.attributionControl.setPrefix(false);
+    L.control.scale({ imperial: false, position: 'topright', maxWidth: 100 }).addTo(P.mapa);
+    P.capa = L.layerGroup().addTo(P.mapa);
+    P.mapa.on('click', (e) => agregarTocando([e.latlng.lat, e.latlng.lng]));
+    P.mapa.on('zoomend', dibujarParcela);
+  }
+  if (!P.base) P.base = crearCapa(capaActual).addTo(P.mapa);
+  setTimeout(() => {
+    P.mapa.invalidateSize();
+    if (P.puntos.length >= 2) P.mapa.fitBounds(L.latLngBounds(P.puntos).pad(0.6));
+    else if (P.puntos.length === 1) P.mapa.setView(P.puntos[0], 19);
+    else if (centro) P.mapa.setView(centro, 19);
+    else if (ultimaPos) P.mapa.setView([ultimaPos.lat, ultimaPos.lon], 19);
+    else P.mapa.setView(CONFIG.CENTRO, 15);
+    dibujarParcela();
+  }, 60);
+}
+
+function recordarParcela() {
+  P.deshacer.push(P.puntos.map((x) => x.slice()));
+  if (P.deshacer.length > 60) P.deshacer.shift();
+  P.rehacer = [];
+  P.cambios = true;
+}
+
+/** Tocando el mapa: la esquina se mete en el lado más cercano para que las líneas no se crucen. */
+function agregarTocando(pt) {
+  recordarParcela();
+  const p = P.puntos;
+  if (p.length < 3) p.push(pt);
+  else {
+    let mejor = p.length, costo = Infinity;
+    for (let i = 0; i < p.length; i++) {
+      const a = p[i], b = p[(i + 1) % p.length];
+      const c = distanciaP(a, pt) + distanciaP(pt, b) - distanciaP(a, b);
+      if (c < costo) { costo = c; mejor = i + 1; }
+    }
+    p.splice(mejor, 0, pt);
+  }
+  dibujarParcela();
+}
+
+/** Caminando: la esquina se agrega en el orden en que se recorre el borde. */
+function esquinaConGps() {
+  if (!ultimaPos) { aviso('Buscando señal GPS… espera un momento en campo abierto'); return; }
+  const prec = Math.round(ultimaPos.precision);
+  if (prec > 15 && !confirm(`El GPS tiene ±${prec} m de error. Lo ideal es menos de 10 m: sal a campo abierto y espera. ¿Agregar la esquina de todas formas?`)) return;
+  recordarParcela();
+  P.puntos.push([ultimaPos.lat, ultimaPos.lon]);
+  dibujarParcela();
+  aviso(`Esquina ${P.puntos.length} agregada (±${prec} m)`);
+}
+
+function deshacerParcela() {
+  if (!P.deshacer.length) { aviso('No hay nada que deshacer'); return; }
+  P.rehacer.push(P.puntos.map((x) => x.slice()));
+  P.puntos = P.deshacer.pop();
+  dibujarParcela();
+}
+function rehacerParcela() {
+  if (!P.rehacer.length) { aviso('No hay nada que rehacer'); return; }
+  P.deshacer.push(P.puntos.map((x) => x.slice()));
+  P.puntos = P.rehacer.pop();
+  dibujarParcela();
+}
+
+function dibujarParcela() {
+  if (!P.mapa) return;
+  P.capa.clearLayers();
+  P.figura = null;
+  const p = P.puntos, n = p.length;
+  if (n >= 3) P.figura = L.polygon(p, { color: '#3DB83A', weight: 3.5, fillOpacity: .22, interactive: false }).addTo(P.capa);
+  else if (n === 2) P.figura = L.polyline(p, { color: '#3DB83A', weight: 3.5, interactive: false }).addTo(P.capa);
+
+  const lados = n >= 3 ? n : n - 1;
+  for (let i = 0; i < lados; i++) {
+    const a = p[i], b = p[(i + 1) % n];
+    const medio = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const pa = P.mapa.latLngToContainerPoint(a), pb = P.mapa.latLngToContainerPoint(b);
+    if (pa.distanceTo(pb) > 70) {
+      let ang = Math.atan2(pb.y - pa.y, pb.x - pa.x) * 180 / Math.PI;
+      if (ang > 90) ang -= 180;
+      if (ang < -90) ang += 180;
+      L.marker(medio, { interactive: false, keyboard: false, icon: L.divIcon({ className: 'etiqueta-lado', iconSize: [0, 0],
+        html: `<span style="transform: translate(-50%, -50%) rotate(${ang}deg) translateY(-13px)">${Math.round(distanciaP(a, b))} m</span>` }) }).addTo(P.capa);
+    }
+    // Punto medio: al arrastrarlo se crea una esquina nueva en ese lado
+    const m = L.marker(medio, { draggable: true, bubblingMouseEvents: false, keyboard: false,
+      icon: L.divIcon({ className: 'medio-caja', iconSize: [32, 32], html: '<div class="medio"></div>' }) }).addTo(P.capa);
+    let nuevo = -1;
+    m.on('dragstart', () => { recordarParcela(); P.puntos.splice(i + 1, 0, medio.slice()); nuevo = i + 1; });
+    m.on('drag', (ev) => { const ll = ev.target.getLatLng(); P.puntos[nuevo] = [ll.lat, ll.lng]; figuraRapida(); });
+    m.on('dragend', dibujarParcela);
+  }
+  p.forEach((pt, i) => {
+    const m = L.marker(pt, { draggable: true, bubblingMouseEvents: false, keyboard: false,
+      icon: L.divIcon({ className: 'vertice-caja', iconSize: [40, 40], html: '<div class="vertice"></div>' }) }).addTo(P.capa);
+    m.on('dragstart', () => { recordarParcela(); const el = m.getElement(); if (el) el.classList.add('activo'); });
+    m.on('drag', (ev) => { const ll = ev.target.getLatLng(); P.puntos[i] = [ll.lat, ll.lng]; figuraRapida(); });
+    m.on('dragend', dibujarParcela);
+  });
+  estadoParcela();
+}
+
+/** Mientras se arrastra: solo se mueve la figura (los puntos se rehacen al soltar). */
+function figuraRapida() {
+  if (P.figura) P.figura.setLatLngs(P.puntos);
+  estadoParcela();
+}
+
+function estadoParcela() {
+  $('#parAyuda').hidden = P.puntos.length > 0;
+  $('#parGps').textContent = ultimaPos ? `GPS ±${Math.round(ultimaPos.precision)} m` : 'GPS buscando…';
+  const t = $('#parTexto');
+  if (P.puntos.length < 3) { t.textContent = 'Zona no válida'; t.style.color = '#E5534B'; }
+  else if (seCruzan(P.puntos)) { t.textContent = 'Zona no válida: las líneas se cruzan'; t.style.color = '#E5534B'; }
+  else {
+    t.textContent = `${Math.round(perimetro(P.puntos))} m   ${textoArea(areaPoligono(P.puntos))}`;
+    t.style.color = '#fff';
+  }
+}
+
+function guardarParcela() {
+  if (P.puntos.length > 0 && P.puntos.length < 3) { aviso('Zona no válida: una parcela necesita al menos 3 esquinas'); return; }
+  if (seCruzan(P.puntos)) { aviso('Zona no válida: arrastra las esquinas para que las líneas no se crucen'); return; }
+  const puntos = P.puntos.map((x) => x.slice());
+  const area = areaPoligono(puntos);
+  const origen = P.origen;
+  P.cambios = false;
+  volver();
+  if (origen === 'form') aplicarParcelaAlForm(puntos, area);
+  else if (puntos.length >= 3) setTimeout(() => abrirForm(null, null, false, { puntos, area }), 200);
+}
+
+function cancelarParcela() {
+  if (P.cambios && !confirm('¿Salir sin guardar los cambios de la parcela?')) return;
+  P.cambios = false;
+  volver();
+}
+
+function aplicarParcelaAlForm(puntos, area) {
+  leerCampos();
+  F.poligono = puntos;
+  if (puntos.length >= 3) {
+    F.area = area;
+    F.cuerdas = (area / m2PorCuerda()).toFixed(2);
+    $('#fCuerdas').value = F.cuerdas;
+    if (F.lat == null) {
+      const c = centroP(puntos);
+      F.lat = c[0]; F.lon = c[1]; F.precision = null; F.altitud = null;
+      pintarGps();
+    }
+  } else {
+    F.area = null;
+  }
+  guardarSiHayDatos();
+  pintarParcela();
+}
+
+function pintarParcela() {
+  const n = (F.poligono || []).length;
+  if (n >= 3) {
+    $('#fParcelaInfo').textContent = `${n} esquinas · ${textoArea(F.area || areaPoligono(F.poligono))}`;
+    $('#fParcela').textContent = 'Ver o editar parcela';
+  } else {
+    $('#fParcelaInfo').textContent = 'Sin parcela dibujada';
+    $('#fParcela').textContent = 'Dibujar parcela';
+  }
+}
+
+function elegirCuerda() {
+  const actual = m2PorCuerda();
+  const opciones = [[628.9, '30 × 30 varas (629 m²)'], [436.7, '25 × 25 varas (437 m²)'], [1118, '40 × 40 varas (1,118 m²)'], ['otra', 'Otra medida (escribir m²)']];
+  $('#listaCuerdas').innerHTML = opciones.map(([v, t]) =>
+    `<button class="opcion" data-v="${v}"><span class="marca">${v !== 'otra' && Math.abs(v - actual) < 1 ? '✓' : ''}</span>${t}</button>`).join('');
+  $('#listaCuerdas').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    let v = b.dataset.v;
+    if (v === 'otra') {
+      v = numero(prompt('¿Cuántos metros cuadrados tiene una cuerda?', String(actual)));
+      if (!v || v <= 0) { aviso('Escribe un número válido'); return; }
+    } else v = Number(v);
+    localStorage.setItem('m2_cuerda', String(v));
+    aviso(`Cuerda de ${Math.round(v)} m²`);
+    cerrarModal('#modalCuerda');
+  }));
+  abrirModal('#modalCuerda');
+}
+
+// ============================================================
 //  EVENTOS
 // ============================================================
 $('#btnCapas').onclick = abrirCapas;
@@ -1126,7 +1469,13 @@ $('#navRegistros').onclick = () => {
   cerrarTodo(abrirLista);
 };
 $('#navEnviar').onclick = () => sincronizar(true);
-$('#navAjustes').onclick = () => { if (!pila.includes('#modalAjustes')) { mostrarEspacio(); abrirModal('#modalAjustes'); } };
+$('#navAjustes').onclick = () => {
+  if (pila.includes('#modalAjustes')) return;
+  if (pila.includes('#vistaParcela')) return;
+  $('#ajCuerda').textContent = `Tamaño de la cuerda (${Math.round(m2PorCuerda())} m²)`;
+  mostrarEspacio();
+  abrirModal('#modalAjustes');
+};
 
 $('#formVolver').onclick = volver;
 $('#listaVolver').onclick = volver;
@@ -1153,6 +1502,40 @@ $('#fEliminar').onclick = eliminar;
 
 $('#ajLista').onclick = () => { cerrarModal('#modalAjustes'); actualizarLista(true); };
 $('#ajZona').onclick = guardarZona;
+$('#ajCuerda').onclick = () => { cerrarModal('#modalAjustes'); setTimeout(elegirCuerda, 200); };
+$('#opParcela').onclick = () => {
+  cerrarMenu();
+  const c = ultimaPos ? [ultimaPos.lat, ultimaPos.lon] : [mapa.getCenter().lat, mapa.getCenter().lng];
+  abrirParcela('mapa', [], c);
+};
+$('#fParcela').onclick = () => {
+  leerCampos();
+  guardarSiHayDatos();
+  abrirParcela('form', F.poligono, F.lat != null ? [F.lat, F.lon] : null);
+};
+$('#parGuardar').onclick = guardarParcela;
+$('#parCancelar').onclick = cancelarParcela;
+$('#parGpsBtn').onclick = esquinaConGps;
+$('#parRehacer').onclick = rehacerParcela;
+$('#parCapas').onclick = abrirCapas;
+$('#parCentrar').onclick = () => {
+  if (ultimaPos) P.mapa.setView([ultimaPos.lat, ultimaPos.lon], Math.max(P.mapa.getZoom(), 19));
+  else aviso('Buscando señal GPS… sal a campo abierto');
+};
+// Deshacer: toque = deshacer · mantener presionado = borrar todo
+(function () {
+  const b = $('#parDeshacer');
+  let reloj = null, largo = false;
+  b.addEventListener('pointerdown', () => {
+    largo = false;
+    reloj = setTimeout(() => {
+      reloj = null; largo = true;
+      if (P.puntos.length && confirm('¿Borrar todas las esquinas de la parcela?')) { recordarParcela(); P.puntos = []; dibujarParcela(); }
+    }, 700);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => b.addEventListener(ev, () => { if (reloj) { clearTimeout(reloj); reloj = null; } }));
+  b.addEventListener('click', () => { if (largo) { largo = false; return; } deshacerParcela(); });
+})();
 $('#ajBorrarMapa').onclick = borrarMapas;
 
 window.addEventListener('online', () => { sincronizar(false); actualizarLista(false); });
