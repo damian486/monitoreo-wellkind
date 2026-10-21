@@ -1,5 +1,5 @@
 /* Service worker: guarda la app y el mapa para usarlos sin internet */
-const VERSION = 'monitoreo-app-v2';
+const VERSION = 'monitoreo-app-v3';
 const MAPA = 'mapa-v1';
 const APP = [
   './',
@@ -14,7 +14,13 @@ const APP = [
 const HOSTS_MAPA = ['server.arcgisonline.com', 'clarity.maptiles.arcgis.com', 'tiles.maps.eox.at', 'tile.openstreetmap.org', 'a.tile.opentopomap.org'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(APP)).then(() => self.skipWaiting()));
+  // cache: 'reload' = siempre la versión más nueva del servidor, no la guardada por el navegador
+  e.waitUntil(
+    caches.open(VERSION)
+      .then((c) => Promise.all(APP.map((u) => fetch(new Request(u, { cache: 'reload' }))
+        .then((r) => (r.ok ? c.put(u, r) : null)).catch(() => null))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -33,7 +39,7 @@ self.addEventListener('fetch', (e) => {
   // El envío y la lista de beneficiarios siempre van directo a Google
   if (url.hostname.endsWith('google.com') || url.hostname.endsWith('googleusercontent.com')) return;
 
-  // Imágenes del mapa: primero lo guardado, si no, internet (y se guarda)
+  // Imágenes del mapa: primero lo guardado; si no, internet (y se guarda)
   if (HOSTS_MAPA.includes(url.hostname)) {
     e.respondWith(caches.open(MAPA).then(async (c) => {
       const guardada = await c.match(req.url);
@@ -49,16 +55,29 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // La app: responde con lo guardado y actualiza en segundo plano
+  // La página de la app: con internet SIEMPRE la versión nueva; sin internet, la guardada
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then((r) => {
+          if (r.ok) { const copia = r.clone(); caches.open(VERSION).then((c) => c.put('./index.html', copia)); }
+          return r;
+        })
+        .catch(() => caches.match('./index.html').then((g) => g || caches.match('./')))
+    );
+    return;
+  }
+
+  // Lo demás (íconos, Leaflet): lo guardado primero y se actualiza en segundo plano
   e.respondWith(
-    caches.match(req, { ignoreSearch: req.mode === 'navigate' }).then((guardada) => {
+    caches.match(req).then((guardada) => {
       const red = fetch(req).then((r) => {
         if (r.ok && (url.origin === self.location.origin || url.hostname === 'cdnjs.cloudflare.com')) {
           const copia = r.clone();
           caches.open(VERSION).then((c) => c.put(req, copia));
         }
         return r;
-      }).catch(() => guardada || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()));
+      }).catch(() => guardada || Response.error());
       return guardada || red;
     })
   );
