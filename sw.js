@@ -1,5 +1,5 @@
 /* Service worker: guarda la app y el mapa para usarlos sin internet */
-const VERSION = 'monitoreo-app-v1';
+const VERSION = 'monitoreo-app-v2';
 const MAPA = 'mapa-v1';
 const APP = [
   './',
@@ -11,7 +11,7 @@ const APP = [
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
 ];
-const HOSTS_MAPA = ['server.arcgisonline.com', 'tile.openstreetmap.org', 'a.tile.opentopomap.org'];
+const HOSTS_MAPA = ['server.arcgisonline.com', 'clarity.maptiles.arcgis.com', 'tiles.maps.eox.at', 'tile.openstreetmap.org', 'a.tile.opentopomap.org'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(APP)).then(() => self.skipWaiting()));
